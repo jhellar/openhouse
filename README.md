@@ -10,7 +10,7 @@ The presentation demoes what can be achieved with Ansible, Jenkins and few pipel
 
 - machine where Jenkins master will be running
   - [git](https://git-scm.com/) installed
-  - [VirtualBox](https://www.virtualbox.org/) installed for Minishift
+  - [VirtualBox](https://www.virtualbox.org/) installed
   - 10GB memory (16GB in case you want to run VM with Jenkins slave there)
 - (virtual) machine with Fedora 27 installed (Jenkins slave)
   - 6GB memory
@@ -96,3 +96,55 @@ Perform these steps on Jenkins master machine:
 - set `Repository URL` as `https://github.com/jhellar/android-helloworld`
 - `Save`
 - `Build Now`
+
+## iOS and Android Testing
+
+### Prerequisites
+
+- machine where Jenkins master will be running
+  - [git](https://git-scm.com/) installed
+  - [VirtualBox](https://www.virtualbox.org/) installed
+  - 10GB memory
+- Mac (Jenkins slave)
+  - Xcode installed
+  - Xcode command line tools installed
+  - Homebrew installed ([enabled for all users](https://gist.github.com/jaibeee/9a4ea6aa9d428bc77925))
+  - JDK installed
+- iOS device connected to Jenkins slave
+- Android device (emulator) connected to Jenkins slave
+- Apple developer account
+  - iOS wildcard certificates for debug
+
+### Installation
+
+#### Mac setup
+
+- create new user for Jenkins
+- enable ssh for this user
+- make sure you are able to ssh (key based authentication) from your Jenkins master machine
+
+#### Jenkins master initial setup
+
+- follow the same steps as in the Android section
+  - instead of `openhouse-linux-inventory` use `openhouse-inventory`
+  - instead of `linux_user` use `macos_user`
+- create a folder with your iOS certificates (private key, certificate, provisioning profile)
+  - names of these files should be `debug.p12`, `debug.cer`, `debug.mobileprovision`
+  - zip these files
+- open `openhouse-inventory` with text editor
+- replace `jdk_version` value with one you have installed (you should be able to find it in `/Library/Java/JavaVirtualMachines`)
+- replace `xcode_org_id` value with your ID
+- replace `provisioning_profile` value with your provisioning profile name
+
+#### Setup the rest with ansible
+
+- `ansible-playbook -i openhouse-inventory openhouse.yml -e "jenkins_public_key_path=<SSH_KEY_PATH>/id_rsa.pub" -e "jenkins_private_key_path=<SSH_KEY_PATH>/id_rsa" -e "add_public_key_automatically=true" -e "certificates_dir=<IOS_CERTIFICATES_PATH>" -e "key_password=<PRIVATE_KEY_PASSWORD>"`
+- take note of Jenkins instance address
+
+### Build and test iOS application
+
+- follow the same steps as in the Android section
+  - for `Repository URL` use `https://github.com/jhellar/ios-helloworld`
+  - in configuration section of the job check `This project is parameterised`
+  - add string parameter with name `BUILD_CREDENTIAL_ID`
+  - [add the zip](https://aerogear.org/docs/digger/developer/#build-application) with iOS certificates to Jenkins
